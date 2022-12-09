@@ -3,6 +3,7 @@ import logging
 import os
 from binascii import hexlify
 from flask import request
+from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from app.model.registration import Registration, RegistrationSchema
@@ -22,9 +23,12 @@ class TransactionService:
         params = request.args
         try:
             reg_query = Transaction.query
+            if params.get('primary_owner'):
+                reg_query = reg_query.outerjoin(Registration, and_(Registration.phone_number == Transaction.user_id)) \
+                    .filter(Registration.primary_owner == params.get('primary_owner'))
             if params.get('user_id'):
                 reg_query = reg_query.filter(Transaction.user_id == params.get('user_id'))
-            return Resp.success(get_trans_schema.dump(reg_query.all()))
+            return Resp.success(get_trans_schema.dump(reg_query.order_by(Transaction.created_at.desc()).all()))
         except Exception as e:
             log.exception("error in getting reg: {}".format(e))
             return Resp.error("error")
@@ -36,6 +40,12 @@ class TransactionService:
         user = Registration.query.filter_by(phone_number=data.get('user_id')).first()
         if user:
             log.debug('user_data: {}'.format(user))
+
+            # check if user is verified and active
+            if user.verification_status != "COMPLETED":
+                return Resp.error("Verification status is not completed. Please verify using qr code before payment.")
+            if not user.is_active:
+                return Resp.error("User is not active. Please activate user before payment.")
 
             # check if requested amount is greater than max limit.
             if user.max_limit < data.get('transaction_amount'):

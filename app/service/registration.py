@@ -23,7 +23,9 @@ class RegistrationService:
             reg_query = Registration.query
             if params.get('primary_owner'):
                 reg_query = reg_query.filter(Registration.primary_owner == params.get('primary_owner'))
-            return Resp.success(get_all_reg_schema.dump(reg_query.all()))
+            if params.get('phone_number'):
+                reg_query = reg_query.filter(Registration.phone_nubmer == params.get('phone_number'))
+            return Resp.success(get_all_reg_schema.dump(reg_query.order_by(Registration.created_at.desc()).all()))
         except Exception as e:
             log.exception("error in getting reg: {}".format(e))
             return Resp.error("error")

@@ -17,7 +17,11 @@ class TransactionResource(Resource):
         parameters:
           - name: "user_id"
             in: "query"
-            description: "get all protectPe transactions by user_id"
+            description: "get all protectPe transactions by user_id(kid phonepe number)"
+            type: "string"
+          - name: "primary_owner"
+            in: "query"
+            description: "get all protectPe transactions by primary_owner(parent)"
             type: "string"
         responses:
           200:
